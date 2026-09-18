@@ -70,7 +70,7 @@ defmodule Blink do
   payload errors.
 
   Options: `:endpoint`, `:model`, `:min_confidence`, `:timeout`,
-  `:temperature`, `:top_logprobs`, `:extra_body`, `:client`.
+  `:temperature`, `:top_logprobs`, `:extra_body`, `:extra_headers`, `:client`.
   """
   def evaluate(prompt, schema, opts \\ []) do
     Gate.run(prompt, schema, gate_config(opts))
@@ -117,6 +117,7 @@ defmodule Blink do
       temperature: Keyword.get(opts, :temperature, 0),
       top_logprobs: Keyword.get(opts, :top_logprobs, 5),
       extra_body: Keyword.get(opts, :extra_body, %{}),
+      extra_headers: Keyword.get(opts, :extra_headers, []),
       client: Keyword.get(opts, :client, Blink.Client)
     }
   end

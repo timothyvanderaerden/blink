@@ -82,6 +82,50 @@ defmodule Blink.ClientTest do
     assert req["seed"] == 42
   end
 
+  test "sends :extra_headers from the config", %{bypass: bypass} do
+    test_pid = self()
+
+    Bypass.expect(bypass, "POST", "/v1/chat/completions", fn conn ->
+      send(test_pid, {:headers, Plug.Conn.get_req_header(conn, "authorization")})
+
+      Plug.Conn.put_resp_content_type(conn, "application/json")
+      |> Plug.Conn.resp(200, Jason.encode!(Fixtures.chat_body("{}", [])))
+    end)
+
+    conf = %{
+      endpoint: "http://127.0.0.1:#{bypass.port}/v1",
+      model: "qwen2.5:1.5b",
+      extra_headers: [{"Authorization", "Bearer sk-from-config"}]
+    }
+
+    assert {:ok, _, _} = Client.complete(conf, messages())
+    assert_receive {:headers, ["Bearer sk-from-config"]}
+  end
+
+  test "option :extra_headers overrides the config", %{bypass: bypass} do
+    test_pid = self()
+
+    Bypass.expect(bypass, "POST", "/v1/chat/completions", fn conn ->
+      send(test_pid, {:headers, Plug.Conn.get_req_header(conn, "authorization")})
+
+      Plug.Conn.put_resp_content_type(conn, "application/json")
+      |> Plug.Conn.resp(200, Jason.encode!(Fixtures.chat_body("{}", [])))
+    end)
+
+    conf = %{
+      endpoint: "http://127.0.0.1:#{bypass.port}/v1",
+      model: "qwen2.5:1.5b",
+      extra_headers: [{"Authorization", "Bearer sk-from-config"}]
+    }
+
+    assert {:ok, _, _} =
+             Client.complete(conf, messages(),
+               extra_headers: [{"Authorization", "Bearer sk-from-opts"}]
+             )
+
+    assert_receive {:headers, ["Bearer sk-from-opts"]}
+  end
+
   test "returns :http_error for non-2xx responses", %{bypass: bypass} do
     Fixtures.stub(bypass, %{"error" => "bad request"}, 400)
 

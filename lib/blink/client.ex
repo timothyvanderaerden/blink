@@ -35,6 +35,8 @@ defmodule Blink.Client do
     * `:model` - model name (default `"#{@default_model}"`)
     * `:timeout` - receive timeout in ms (default #{@default_timeout})
     * `:temperature`, `:top_logprobs`, `:extra_body` - payload overrides
+     * `:extra_headers` - extra HTTP headers as `[{"Name", "value"}, ...]`
+       (e.g. `Authorization` for hosted OpenAI-compatible APIs)
 
   Returns `{:ok, params, logprob_entries}` where `params` is the decoded
   JSON object from the assistant message and `logprob_entries` is the raw
@@ -49,6 +51,7 @@ defmodule Blink.Client do
       Keyword.get(opts, :top_logprobs, Map.get(config, :top_logprobs, @default_top_logprobs))
 
     extra_body = Keyword.get(opts, :extra_body, Map.get(config, :extra_body, %{}))
+    headers = Keyword.get(opts, :extra_headers, Map.get(config, :extra_headers, []))
 
     payload =
       %{
@@ -65,6 +68,7 @@ defmodule Blink.Client do
 
     case Req.post(url,
            json: payload,
+           headers: headers,
            receive_timeout: timeout,
            connect_options: [timeout: 5_000]
          ) do

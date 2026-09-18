@@ -67,6 +67,27 @@ defmodule BlinkTest do
       assert result.latency_ms >= 0
     end
 
+    test "passes :extra_headers through to the client", %{bypass: bypass} do
+      test_pid = self()
+
+      Bypass.expect(bypass, "POST", "/v1/chat/completions", fn conn ->
+        send(test_pid, {:headers, Plug.Conn.get_req_header(conn, "authorization")})
+
+        respond(conn,
+          Fixtures.chat_body(Fixtures.triage_content(), Fixtures.high_confidence_tokens())
+        )
+      end)
+
+      assert {:ok, result} =
+               Blink.evaluate("hi", Triage,
+                 config(bypass) ++
+                   [extra_headers: [{"Authorization", "Bearer sk-demo"}]]
+               )
+
+      assert result.status == :handled_locally
+      assert_receive {:headers, ["Bearer sk-demo"]}
+    end
+
     test "evaluate/2 uses the configured default endpoint" do
       bypass = Bypass.open()
       on_exit(fn ->
